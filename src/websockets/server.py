@@ -1,5 +1,5 @@
 """
-The :mod:`websockets.server` module defines a simple WebSocket server API.
+:mod:`websockets.server` defines the WebSocket server APIs.
 
 """
 
@@ -62,7 +62,7 @@ HTTPResponse = Tuple[http.HTTPStatus, HeadersLike, bytes]
 
 class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
-    Complete WebSocket server implementation as an :class:`asyncio.Protocol`.
+    Implement a WebSocket server as an :class:`asyncio.Protocol`.
 
     This class inherits most of its methods from
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
@@ -226,12 +226,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         Read request line and headers from the HTTP request.
 
-        Raise :exc:`~websockets.exceptions.InvalidMessage` if the HTTP message
-        is malformed or isn't an HTTP/1.1 GET request.
+        If the request contains a body, it may be read from ``self.reader``
+        after this coroutine returns.
 
-        Don't attempt to read the request body because WebSocket handshake
-        requests don't have one. If the request contains a body, it may be
-        read from ``self.reader`` after this coroutine returns.
+        :raises ~websockets.exceptions.InvalidMessage: if the HTTP message is
+            malformed or isn't an HTTP/1.1 GET request
 
         """
         try:
@@ -269,7 +268,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.writer.write(response.encode())
 
         if body is not None:
-            logger.debug("%s > Body (%d bytes)", self.side, len(body))
+            logger.debug("%s > body (%d bytes)", self.side, len(body))
             self.writer.write(body)
 
     async def process_request(
@@ -277,9 +276,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     ) -> Optional[HTTPResponse]:
         """
         Intercept the HTTP request and return an HTTP response if appropriate.
-
-        ``path`` is a :class:`str` and ``request_headers`` is a
-        :class:`~websockets.http.Headers` instance.
 
         If ``process_request`` returns ``None``, the WebSocket handshake
         continues. If it returns a status code, headers and a response body,
@@ -310,6 +306,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         a long time, then it should await :meth:`wait_closed` and exit if
         :meth:`wait_closed` completes, or else it could prevent the server
         from shutting down.
+
+        :param path: request path, including optional query string
+        :param request_headers: request headers
 
         """
         if self._process_request is not None:
@@ -500,26 +499,21 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         Perform the server side of the opening handshake.
 
-        If provided, ``origins`` is a list of acceptable HTTP Origin values.
-        Include ``None`` if the lack of an origin is acceptable.
-
-        If provided, ``available_extensions`` is a list of supported
-        extensions in the order in which they should be used.
-
-        If provided, ``available_subprotocols`` is a list of supported
-        subprotocols in order of decreasing preference.
-
-        If provided, ``extra_headers`` sets additional HTTP response headers
-        when the handshake succeeds. It can be a
-        :class:`~websockets.http.Headers` instance, a
-        :class:`~collections.abc.Mapping`, an iterable of ``(name, value)``
-        pairs, or a callable taking the request path and headers in arguments
-        and returning one of the above.
-
-        Raise :exc:`~websockets.exceptions.InvalidHandshake` if the handshake
-        fails.
-
         Return the path of the URI of the request.
+
+        :param origins: list of acceptable values of the Origin HTTP header.
+            Include ``None`` if the lack of an origin is acceptable.
+        :param available_extensions: list of supported extensions in the order
+            in which they should be used.
+        :param available_subprotocols: list of supported subprotocols in order
+            of decreasing preference.
+        :param extra_headers: sets additional HTTP response headers when the
+            handshake succeeds. It can be a :class:`~websockets.http.Headers`
+            instance, a :class:`~collections.abc.Mapping`, an iterable of
+            ``(name, value)`` pairs, or a callable taking the request path and
+            headers in arguments and returning one of the above.
+        :raises ~websockets.exceptions.InvalidHandshake: if the handshake
+            fails.
 
         """
         path, request_headers = await self.read_http_request()
@@ -594,8 +588,8 @@ class WebSocketServer:
     This class provides the return type of :func:`~websockets.server.serve`.
 
     It mimics the interface of :class:`~asyncio.AbstractServer`, namely its
-    :meth:`~asyncio.AbstractServer.close()` and
-    :meth:`~asyncio.AbstractServer.wait_closed()` methods, to close WebSocket
+    :meth:`~asyncio.AbstractServer.close` and
+    :meth:`~asyncio.AbstractServer.wait_closed` methods, to close WebSocket
     connections properly on exit, in addition to closing the underlying
     :class:`~asyncio.Server`.
 
@@ -722,7 +716,7 @@ class WebSocketServer:
         """
         Wait until the server is closed and all connections are terminated.
 
-        When :meth:`wait_closed()` returns, all TCP connections are closed and
+        When :meth:`wait_closed` returns, all TCP connections are closed and
         there are no pending tasks left.
 
         """
@@ -972,9 +966,7 @@ def unix_serve(
     **kwargs: Any,
 ) -> Serve:
     """
-    Similar to :func:`serve()`, but for listening on Unix sockets.
-
-    ``path`` is the path to the Unix socket.
+    Similar to :func:`serve`, but for listening on Unix sockets.
 
     This function calls the event loop's
     :meth:`~asyncio.AbstractEventLoop.create_unix_server` method.
@@ -982,6 +974,8 @@ def unix_serve(
     It is only available on Unix.
 
     It's useful for deploying a server behind a reverse proxy such as nginx.
+
+    :param path: filesystem path to the Unix socket.
 
     """
     return serve(ws_handler, path=path, **kwargs)

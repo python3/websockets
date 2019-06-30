@@ -1,5 +1,5 @@
 """
-The :mod:`websockets.client` module defines a simple WebSocket client API.
+:mod:`websockets.client` defines the WebSocket client APIs.
 
 """
 
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
-    Complete WebSocket client implementation as an :class:`asyncio.Protocol`.
+    Implement a WebSocket client as an :class:`asyncio.Protocol`.
 
     This class inherits most of its methods from
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
@@ -91,12 +91,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         Read status line and headers from the HTTP response.
 
-        Raise :exc:`~websockets.exceptions.InvalidMessage` if the HTTP message
-        is malformed or isn't an HTTP/1.1 GET request.
+        If the response contains a body, it may be read from ``self.reader``
+        after this coroutine returns.
 
-        Don't attempt to read the response body because WebSocket handshake
-        responses don't have one. If the response contains a body, it may be
-        read from ``self.reader`` after this coroutine returns.
+        :raises ~websockets.exceptions.InvalidMessage: if the HTTP message is
+            malformed or isn't an HTTP/1.1 GET response
 
         """
         try:
@@ -234,21 +233,18 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         Perform the client side of the opening handshake.
 
-        If provided, ``origin`` sets the Origin HTTP header.
+        :param origin: sets the Origin HTTP header.
+        :param available_extensions: list of supported extensions in the order
+            in which they should be used.
+        :param available_subprotocols: list of supported subprotocols in order
+            of decreasing preference.
+        :param extra_headers: sets additional HTTP request headers. It must be
+            a :class:`~websockets.http.Headers` instance, a
+            :class:`~collections.abc.Mapping`, or an iterable of ``(name,
+            value)`` pairs.
 
-        If provided, ``available_extensions`` is a list of supported
-        extensions in the order in which they should be used.
-
-        If provided, ``available_subprotocols`` is a list of supported
-        subprotocols in order of decreasing preference.
-
-        If provided, ``extra_headers`` sets additional HTTP request headers.
-        It must be a :class:`~websockets.http.Headers` instance, a
-        :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
-        pairs.
-
-        Raise :exc:`~websockets.exceptions.InvalidHandshake` if the handshake
-        fails.
+        :raises ~websockets.exceptions.InvalidHandshake: if the handshake
+            fails.
 
         """
         request_headers = Headers()
@@ -365,9 +361,9 @@ class Connect:
       :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
       pairs
 
-    :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is
-    invalid and :exc:`~websockets.handshake.InvalidHandshake` if the opening
-    handshake fails.
+    :raises ~websockets.uri.InvalidURI: if ``uri`` is invalid
+    :raises ~websockets.handshake.InvalidHandshake: if the opening handshake
+        fails
 
     """
 
@@ -577,14 +573,15 @@ def unix_connect(path: str, uri: str = "ws://localhost/", **kwargs: Any) -> Conn
     """
     Similar to :func:`connect`, but for connecting to a Unix socket.
 
-    ``path`` is the path to the Unix socket. ``uri`` is the WebSocket URI.
-
     This function calls the event loop's
     :meth:`~asyncio.AbstractEventLoop.create_unix_connection` method.
 
     It is only available on Unix.
 
     It's mainly useful for debugging servers listening on Unix sockets.
+
+    :param path: filesystem path to the Unix socket
+    :param uri: WebSocket URI
 
     """
     return connect(uri=uri, path=path, **kwargs)
